@@ -1,6 +1,5 @@
 import pandas as pd
 from datetime import datetime, timedelta, time
-from google.colab import files
 
 # --- FUNCIONES BASE ---
 def convertir_a_str(hora):
@@ -168,32 +167,43 @@ def calcular_dia_tra(row):
     
     return 1 if es_laboral and tiene_horas else 0
 
-# --- EJECUCIÓN PRINCIPAL ---
-uploaded = files.upload()  # Cargar archivo desde tu máquina local
-file_name = next(iter(uploaded))  # Obtener el nombre del archivo cargado
-df = pd.read_excel(file_name)  # Leer el archivo Excel
 
-columnas_ingreso = df.columns.tolist()
 
-# Aplicar el procesamiento de filas
-resultados = df.apply(procesar_fila, axis=1, result_type="expand")
-df_resultado = pd.concat([df, resultados], axis=1)
+def procesar_archivo(input_path: str, output_path: str = "reporte_horas_final_actualizado.xlsx") -> pd.DataFrame:
+    """Procesa un archivo de horas laborales y guarda el resultado.
 
-# Modificar la columna "DIA-TRA"
-df_resultado["DIA-TRA"] = df_resultado.apply(calcular_dia_tra, axis=1)
+    Parameters
+    ----------
+    input_path : str
+        Ruta del archivo Excel de entrada.
+    output_path : str
+        Ruta donde se guardará el archivo procesado.
 
-# --- ORDEN FINAL DE COLUMNAS (según tu imagen) ---
-columnas_orden = [
-    "Horas Diurnas", "Extra 25%", "Extra 35%", "Horas Nocturnas",
-    "Extra 25% Nocturna", "Extra 35% Nocturna",
-    "Horas Domingo/Feriado", "Horas Extra Domingo/Feriado",
-    "Horas Normales", "Total Horas"
-]
-df_resultado = df_resultado[columnas_ingreso + ["DIA-TRA"] + columnas_orden]
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame con las columnas originales y el cálculo de horas.
+    """
+    df = pd.read_excel(input_path)
+    columnas_ingreso = df.columns.tolist()
 
-# --- GUARDAR ARCHIVO FINAL ---
-df_resultado.to_excel("reporte_horas_final_actualizado(C).xlsx", index=False)
-print("✅ Archivo generado: 'reporte_horas_final_actualizado(C).xlsx'")
+    resultados = df.apply(procesar_fila, axis=1, result_type="expand")
+    df_resultado = pd.concat([df, resultados], axis=1)
 
-# Descargar el archivo con los resultados
-files.download("reporte_horas_final_actualizado(C).xlsx")
+    df_resultado["DIA-TRA"] = df_resultado.apply(calcular_dia_tra, axis=1)
+
+    columnas_orden = [
+        "Horas Diurnas", "Extra 25%", "Extra 35%", "Horas Nocturnas",
+        "Extra 25% Nocturna", "Extra 35% Nocturna",
+        "Horas Domingo/Feriado", "Horas Extra Domingo/Feriado",
+        "Horas Normales", "Total Horas",
+    ]
+    df_resultado = df_resultado[columnas_ingreso + ["DIA-TRA"] + columnas_orden]
+
+    df_resultado.to_excel(output_path, index=False)
+    return df_resultado
+
+
+if __name__ == "__main__":
+    procesar_archivo("data/ejemplo_input.xlsx", "reporte_horas_final_actualizado.xlsx")
+    print("✅ Archivo generado: 'reporte_horas_final_actualizado.xlsx'")
